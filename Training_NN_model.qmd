@@ -1,0 +1,78 @@
+---
+title: "NN_Training"
+author: "Simon Oiry"
+format: html
+editor: source
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r library_R}
+
+library(tidyverse)
+library(reticulate)
+
+### Setup Python Environnement and packages
+
+```
+
+```{python library_Py}
+import fastbook
+
+fastbook.setup_book()
+
+from fastbook import *
+from fastinference import *
+from pandas.api.types import is_string_dtype, is_numeric_dtype, is_categorical_dtype
+from fastai.tabular.all import *
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from dtreeviz.trees import *
+from IPython.display import Image, display_svg, SVG
+from sklearn.model_selection import train_test_split
+pd.options.display.max_rows = 20
+pd.options.display.max_columns = 8
+from fastai.tabular.all import * 
+
+```
+
+
+```{r Training data opening}
+
+df_nn = read.delim('Data/Training_BiCOME/TrainandValid_NewStanRawMetrics.csv', sep = ";") %>% 
+  dplyr::filter(True_Class != "Xanthophyceae") %>% 
+  set_names(c("Class",paste0("B",c(1:10)),paste0("B",c(1:10),"_STD"),"NDVI_STD","NDVI"))
+
+```
+
+
+```{python Model_Building}
+
+dep_var = "Class"
+splits = RandomSplitter()(r.df_nn)
+cont_nn,cat_nn = cont_cat_split(r.df_nn, dep_var=dep_var)
+procs_nn = [FillMissing]
+
+to_nn = TabularPandas(r.df_nn, procs_nn, cat_nn, cont_nn,splits=splits, y_names=dep_var, y_block=CategoryBlock())
+
+dls = to_nn.dataloaders()
+dls.valid.show_batch()
+
+y = to_nn.train.y
+y.min(),y.max()
+
+learn = tabular_learner(dls,n_out=10)
+learn.lr_find()
+learn.summary()
+
+learn.fine_tune(12)
+
+preds,targs = learn.get_preds()
+preds,targs
+
+error_rate(preds, targs)
+
+learn.export('models/nn_NewTrain_StanRawMetrics_NoXanth.pkl')
+
+```
+
