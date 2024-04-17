@@ -39,6 +39,8 @@ from fastai.tabular.all import *
 
 ```{r Training data opening}
 
+### Gonna be used to modify the training dataset
+
 df_nn = read.delim('Data/Training_BiCOME/TrainandValid_NewStanRawMetrics.csv', sep = ";") %>% 
   dplyr::filter(True_Class != "Xanthophyceae") %>% 
   set_names(c("Class",paste0("B",c(1:10)),paste0("B",c(1:10),"_STD"),"NDVI_STD","NDVI"))
