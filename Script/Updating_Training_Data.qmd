@@ -16,9 +16,9 @@ library(terra)
 library(sf)
 
 
-rast <- rast("Data/img/Belon_1104_MS.tif") 
+rast <- rast("Data/img/Belon_1004_MS.tif") 
 
-shp <- read_sf("Data/shp/Training_Belon_1104/Training_Belon_1104.shp")
+shp <- read_sf("Data/shp/Training_Belon_1004/Training_Belon_1004.shp")
 
 Class <-data.frame(True_Class = unique(shp$True_Class),
                 ID= c(1:length( unique(shp$True_Class))))
@@ -71,14 +71,17 @@ df <- stk %>%
   select(-ID) %>% 
   mutate(NDVI_Stan = (Reflectance_Stan_842-Reflectance_Stan_668)/(Reflectance_Stan_842+Reflectance_Stan_668),
          NDVI = (Reflectance_842-Reflectance_668)/(Reflectance_842+Reflectance_668)) %>% 
-  relocate(True_Class)
+  relocate(True_Class) 
+    # sample_n(230000)
 
-old_data <- read.delim("D:/Git_repo/Drone_NN_Classifier/Data/Training/DISCOV_BiCOME_Training_reframed.csv", sep=";")
+
+old_data <- read.delim("Data/Training/DISCOV_Invasea.csv", sep=";")
   
 
 new_training_data <- rbind(df,old_data)
 
-utils::write.table(new_training_data, "Data/Training/DISCOV_Invasea.csv", sep = ";", quote = FALSE, row.names = FALSE) 
+utils::write.table(new_training_data, "Data/Training/DISCOV_Invasea_V2.csv", sep = ";", quote = FALSE, row.names = FALSE) 
 
+table(new_training_data$True_Class)
 
 ```
