@@ -333,4 +333,3 @@ dependencies:
       - widgetsnbextension==3.6.6
       - xxhash==3.4.1
       - yarl==1.9.4
-prefix: C:\Users\oirys\miniforge3\envs\NN_env
