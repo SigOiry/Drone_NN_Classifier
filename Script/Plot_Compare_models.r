@@ -6,7 +6,7 @@ library(patchwork)
 library(Utilities.Package)
 
 
-BiCOME_Gaf <- "Output/Pred/Gafanha_Low_BiCOME_reframed_pred.tif" %> 
+BiCOME_Gaf <- "Output/Pred/Gafanha_Low_BiCOME_reframed_pred.tif" %>% 
     rast()
 
 values(BiCOME_Gaf)[values(BiCOME_Gaf) == 0] = NA
