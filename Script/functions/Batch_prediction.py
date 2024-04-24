@@ -146,12 +146,13 @@ def batch_prediction(imgs, models):
 
         ID_l=list(df_test_nrum['ID'])
 
+        gc.collect()
+
         for learn_i in models:
             print(learn_i)
 
             learn = load_learner('../models/' + learn_i + '.pkl')
             categories = learn.dls.vocab
-            del learn 
 
             dl = learn.dls.test_dl(df_test, bs=4000)
             preds,_ = learn.get_preds(dl=dl)
@@ -231,7 +232,8 @@ def batch_prediction(imgs, models):
 
             # close your datasets and bands!!
             del outband
-            Pred_arr = None
             Prob_ras = None
             driver = None
+
+            gc.collect()
 
