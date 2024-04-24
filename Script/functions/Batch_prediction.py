@@ -137,6 +137,9 @@ def batch_prediction(imgs, models):
             learn = load_learner('../models/' + learn_i + '.pkl')
             categories = learn.dls.vocab
 
+            dl = learn.dls.test_dl(df_test, bs=4000)
+            preds,_ = learn.get_preds(dl=dl)
+
             class_idxs = preds.argmax(axis=1)
 
             class_probs= preds.max(axis=1)
@@ -148,7 +151,7 @@ def batch_prediction(imgs, models):
 
             res_df= pd.DataFrame(list(zip(NumPred, ID_l,PredProbs)),columns =['Pred_ID','ID','Prob'])
 
-            df_test_nan['ID']= np.arange(len(df_test_nan))
+            df_test_nan1['ID']= np.arange(len(df_test_nan))
 
             res_input_df = pd.merge(df_test_nan,res_df, how='left', on = 'ID')
 
@@ -197,4 +200,16 @@ def batch_prediction(imgs, models):
             outband = None
             outds = None
 
+            dl = None
+            preds = None
+            class_idxs = None
+            class_probs = None
+            NumPred = None
+            PredProbs = None
+            res_df = None
+            res_input_df = None
+            res_input_df_Nan = None
+            Pred_arr = None
+            Prob_ras = None
+            driver = None
 
