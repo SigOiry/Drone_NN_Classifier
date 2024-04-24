@@ -40,6 +40,8 @@ def batch_prediction(imgs, models):
         Reflectance_740 = lowtif.GetRasterBand(9).ReadAsArray().astype('float')
         Reflectance_842 = lowtif.GetRasterBand(10).ReadAsArray().astype('float')
 
+        lowtif = None
+
         Reflectance_444[Reflectance_444 == 65535] = np.NAN
         Reflectance_475[Reflectance_475 == 65535] = np.NAN
         Reflectance_531[Reflectance_531 == 65535] = np.NAN
@@ -84,6 +86,9 @@ def batch_prediction(imgs, models):
 
         FullCombo_ten=torch.cat((Full_ten,FullStan_ten,NDVI,NDVI_Stan),2)
 
+        Full_ten = None
+        NDVI_Stan = None
+        NDVI = None
         Reflectance_444= None
         Reflectance_475= None
         Reflectance_531= None
@@ -124,10 +129,14 @@ def batch_prediction(imgs, models):
         df_test_nan=pd.DataFrame(v,columns=Columns_test)
         df_test_nan_nrum = df_test_nan
 
+        v = None
+
         df_test = df_test_nan.dropna()
 
         df_test_nan_nrum['ID'] = np.arange(len(df_test_nan_nrum))
         df_test_nrum = df_test_nan_nrum.dropna()
+
+        df_test_nan_nrum = None
 
         ID_l=list(df_test_nrum['ID'])
 
@@ -136,18 +145,26 @@ def batch_prediction(imgs, models):
 
             learn = load_learner('../models/' + learn_i + '.pkl')
             categories = learn.dls.vocab
+            learn = None
 
             dl = learn.dls.test_dl(df_test, bs=4000)
             preds,_ = learn.get_preds(dl=dl)
+
+            dl= None
 
             class_idxs = preds.argmax(axis=1)
 
             class_probs= preds.max(axis=1)
 
+            preds = None
+
             class_probs=class_probs.values
 
             NumPred= class_idxs.tolist()
             PredProbs =class_probs.tolist()
+
+            class_idxs = None
+            class_probs = None
 
             res_df= pd.DataFrame(list(zip(NumPred, ID_l,PredProbs)),columns =['Pred_ID','ID','Prob'])
 
@@ -155,16 +172,22 @@ def batch_prediction(imgs, models):
 
             res_input_df = pd.merge(df_test_nan,res_df, how='left', on = 'ID')
 
-            res_input_df_Nan= res_input_df.dropna()
+            res_df = None
 
             Pred_arr = np.asarray(res_input_df['Pred_ID'])
 
             Pred_arr=Pred_arr+1
 
             Prob_arr = np.asarray(res_input_df['Prob'])
+
+            res_input_df = None
+
             Prob_ras = Prob_arr.reshape(Full.shape[0], Full.shape[1])
 
             Pred_ras = Pred_arr.reshape(Full.shape[0], Full.shape[1])
+
+            Pred_arr = None
+            Prob_arr = None
 
             # export
             driver = gdal.GetDriverByName("GTiff")
