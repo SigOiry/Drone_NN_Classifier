@@ -11,6 +11,8 @@ from matplotlib import colors
 import matplotlib.pyplot as plt
 import warnings
 import pandas as d
+import gc
+
 warnings.filterwarnings("ignore")
 
 def scaleMinMax(x):
@@ -86,20 +88,24 @@ def batch_prediction(imgs, models):
 
         FullCombo_ten=torch.cat((Full_ten,FullStan_ten,NDVI,NDVI_Stan),2)
 
-        Full_ten = None
-        NDVI_Stan = None
-        NDVI = None
-        Reflectance_444= None
-        Reflectance_475= None
-        Reflectance_531= None
-        Reflectance_560= None
-        Reflectance_650= None
-        Reflectance_668= None
-        Reflectance_705= None
-        Reflectance_717= None
-        Reflectance_740= None
-        Reflectance_842= None
-        FullStan= None
+        del Full_ten
+        del NDVI_Stan
+        del NDVI
+        del Reflectance_444
+        del Reflectance_475
+        del Reflectance_531
+        del Reflectance_560
+        del Reflectance_650
+        del Reflectance_668
+        del Reflectance_705
+        del Reflectance_717
+        del Reflectance_740
+        del Reflectance_842
+        del FullStan
+
+        gc.collect()
+
+
 
         Columns_test=['Reflectance_444',
               'Reflectance_475',
@@ -129,14 +135,14 @@ def batch_prediction(imgs, models):
         df_test_nan=pd.DataFrame(v,columns=Columns_test)
         df_test_nan_nrum = df_test_nan
 
-        v = None
+        del v
 
         df_test = df_test_nan.dropna()
 
         df_test_nan_nrum['ID'] = np.arange(len(df_test_nan_nrum))
         df_test_nrum = df_test_nan_nrum.dropna()
 
-        df_test_nan_nrum = None
+        del df_test_nan_nrum 
 
         ID_l=list(df_test_nrum['ID'])
 
@@ -145,34 +151,37 @@ def batch_prediction(imgs, models):
 
             learn = load_learner('../models/' + learn_i + '.pkl')
             categories = learn.dls.vocab
-            learn = None
+            del learn 
 
             dl = learn.dls.test_dl(df_test, bs=4000)
             preds,_ = learn.get_preds(dl=dl)
 
-            dl= None
+            del dl
 
             class_idxs = preds.argmax(axis=1)
 
             class_probs= preds.max(axis=1)
 
-            preds = None
+            del preds
 
             class_probs=class_probs.values
 
             NumPred= class_idxs.tolist()
             PredProbs =class_probs.tolist()
 
-            class_idxs = None
-            class_probs = None
+            del class_idxs 
+            del class_probs 
 
             res_df= pd.DataFrame(list(zip(NumPred, ID_l,PredProbs)),columns =['Pred_ID','ID','Prob'])
+
+            del NumPred
+            del PredProbs
 
             df_test_nan1['ID']= np.arange(len(df_test_nan))
 
             res_input_df = pd.merge(df_test_nan,res_df, how='left', on = 'ID')
 
-            res_df = None
+            del res_df 
 
             Pred_arr = np.asarray(res_input_df['Pred_ID'])
 
@@ -180,14 +189,14 @@ def batch_prediction(imgs, models):
 
             Prob_arr = np.asarray(res_input_df['Prob'])
 
-            res_input_df = None
+            del res_input_df 
 
             Prob_ras = Prob_arr.reshape(Full.shape[0], Full.shape[1])
 
             Pred_ras = Pred_arr.reshape(Full.shape[0], Full.shape[1])
 
-            Pred_arr = None
-            Prob_arr = None
+            del Pred_arr
+            del Prob_arr
 
             # export
             driver = gdal.GetDriverByName("GTiff")
@@ -204,8 +213,8 @@ def batch_prediction(imgs, models):
             outband.FlushCache()
 
             # close your datasets and bands!!!
-            outband = None
-            outds = None
+            
+            del outds
 
             driver = gdal.GetDriverByName("GTiff")
             driver.Register()
@@ -219,19 +228,9 @@ def batch_prediction(imgs, models):
             outband.SetNoDataValue(65535)
             outband.SetNoDataValue(32767)
             outband.FlushCache()
-            # close your datasets and bands!!!
-            outband = None
-            outds = None
 
-            dl = None
-            preds = None
-            class_idxs = None
-            class_probs = None
-            NumPred = None
-            PredProbs = None
-            res_df = None
-            res_input_df = None
-            res_input_df_Nan = None
+            # close your datasets and bands!!
+            del outband
             Pred_arr = None
             Prob_ras = None
             driver = None
