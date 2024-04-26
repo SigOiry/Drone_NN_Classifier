@@ -141,6 +141,8 @@ def batch_prediction(imgs, models):
 
         df_test_nan_nrum['ID'] = np.arange(len(df_test_nan_nrum))
         df_test_nrum = df_test_nan_nrum.dropna()
+        df_test_nan['ID']= np.arange(len(df_test_nan))
+
 
         del df_test_nan_nrum 
 
@@ -177,8 +179,6 @@ def batch_prediction(imgs, models):
 
             del NumPred
             del PredProbs
-
-            df_test_nan1['ID']= np.arange(len(df_test_nan))
 
             res_input_df = pd.merge(df_test_nan,res_df, how='left', on = 'ID')
 

@@ -4,3 +4,4 @@
 .Ruserdata
 Data/img/**
 Data/np_arrays/**
+*.pyc
