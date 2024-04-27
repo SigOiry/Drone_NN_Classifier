@@ -7,7 +7,9 @@ pd.options.display.max_rows = 20
 pd.options.display.max_columns = 8
 import numpy as np
 from matplotlib import colors
-
+import rasterio as rio
+import rasterio.mask
+import fiona
 import matplotlib.pyplot as plt
 import warnings
 import pandas as d
@@ -15,11 +17,6 @@ import gc
 
 warnings.filterwarnings("ignore")
 
-def scaleMinMax(x):
-    return((x-np.nanmin(x))/(np.nanmax(x)-np.nanmin(x)))
-
-def scaleCCC(x):
-    return((x- np.nanpercentile(x,0))/(np.nanpercentile(x,98)-np.nanpercentile(x,0)))
 
 def batch_prediction(imgs, models):
 
@@ -27,121 +24,64 @@ def batch_prediction(imgs, models):
     for img_i in imgs:
 
         print(img_i)
+
+        with fiona.open('../Data/shp/mask/' + img_i + '.shp', "r") as shapefile:
+            shapes = [feature["geometry"] for feature in shapefile]
+            
+        with rio.open('../Data/img/' + img_i + '.tif') as ds:
+            arr, out_transform = rasterio.mask.mask(ds, shapes, crop=True)
+            out_meta = ds.meta
+
+        gt = [out_transform[2],out_transform[0],out_transform[1],
+        out_transform[5],out_transform[3],out_transform[4]]
+
+
         lowtif = gdal.Open('../Data/img/' + img_i + '.tif')
-        gt = lowtif.GetGeoTransform()
         proj = lowtif.GetProjection()
+        del lowtif 
 
-        Reflectance_444 = lowtif.GetRasterBand(1).ReadAsArray().astype('float')
-        Reflectance_475 = lowtif.GetRasterBand(2).ReadAsArray().astype('float')
-        Reflectance_531 = lowtif.GetRasterBand(3).ReadAsArray().astype('float')
-        Reflectance_560 = lowtif.GetRasterBand(4).ReadAsArray().astype('float')
-        Reflectance_650 = lowtif.GetRasterBand(5).ReadAsArray().astype('float')
-        Reflectance_668 = lowtif.GetRasterBand(6).ReadAsArray().astype('float')
-        Reflectance_705 = lowtif.GetRasterBand(7).ReadAsArray().astype('float')
-        Reflectance_717 = lowtif.GetRasterBand(8).ReadAsArray().astype('float')
-        Reflectance_740 = lowtif.GetRasterBand(9).ReadAsArray().astype('float')
-        Reflectance_842 = lowtif.GetRasterBand(10).ReadAsArray().astype('float')
+        Arr_Max=np.max(arr,axis=0)
+        Arr_Min=np.min(arr,axis=0)
 
-        lowtif = None
+        arr_std=(arr - Arr_Min)/(Arr_Max - Arr_Min)
 
-        Reflectance_444[Reflectance_444 == 65535] = np.NAN
-        Reflectance_475[Reflectance_475 == 65535] = np.NAN
-        Reflectance_531[Reflectance_531 == 65535] = np.NAN
-        Reflectance_560[Reflectance_560 == 65535] = np.NAN
-        Reflectance_650[Reflectance_650 == 65535] = np.NAN
-        Reflectance_668[Reflectance_668 == 65535] = np.NAN
-        Reflectance_705[Reflectance_705 == 65535] = np.NAN
-        Reflectance_717[Reflectance_717 == 65535] = np.NAN
-        Reflectance_740[Reflectance_740 == 65535] = np.NAN
-        Reflectance_842[Reflectance_842 == 65535] = np.NAN
+        df_NAN = pd.DataFrame()
+        df_NAN['Reflectance_444'] = arr[0].ravel()
+        df_NAN['Reflectance_475'] = arr[1].ravel() 
+        df_NAN['Reflectance_531'] = arr[2].ravel() 
+        df_NAN['Reflectance_560'] = arr[3].ravel() 
+        df_NAN['Reflectance_650'] = arr[4].ravel() 
+        df_NAN['Reflectance_668'] = arr[5].ravel() 
+        df_NAN['Reflectance_705'] = arr[6].ravel() 
+        df_NAN['Reflectance_717'] = arr[7].ravel() 
+        df_NAN['Reflectance_740'] = arr[8].ravel() 
+        df_NAN['Reflectance_842'] = arr[9].ravel()
 
-        Reflectance_444[Reflectance_444 == 0] = np.NAN
-        Reflectance_475[Reflectance_475 == 0] = np.NAN
-        Reflectance_531[Reflectance_531 == 0] = np.NAN
-        Reflectance_560[Reflectance_560 == 0] = np.NAN
-        Reflectance_650[Reflectance_650 == 0] = np.NAN
-        Reflectance_668[Reflectance_668 == 0] = np.NAN
-        Reflectance_705[Reflectance_705 == 0] = np.NAN
-        Reflectance_717[Reflectance_717 == 0] = np.NAN
-        Reflectance_740[Reflectance_740 == 0] = np.NAN
-        Reflectance_842[Reflectance_842 == 0] = np.NAN
+        df_NAN.replace([0,65535], np.nan, inplace=True)
 
-        Full = np.dstack((Reflectance_444,Reflectance_475,Reflectance_531,Reflectance_560,Reflectance_650,
-                        Reflectance_668,Reflectance_705,Reflectance_717,Reflectance_740,Reflectance_842))
-        
-        if os.path.isfile("../Data/np_arrays/" + img_i + "_Stan.npy"):
-            print("File exists! Opening the Numpy Array")
-            FullStan = np.load("../Data/np_arrays/" + img_i + "_Stan.npy")
-        else:
-            print("File does not exist! Perform operations on the data array...")
-            FullStan=np.apply_along_axis(scaleMinMax, 2, Full)
-            np.save("../Data/np_arrays/" + img_i + "_Stan",FullStan)
-        
-        Full_ten = torch.from_numpy(Full)
-        FullStan_ten =torch.from_numpy(FullStan)    
+        df_NAN['Reflectance_Stan_444'] = arr_std[0].ravel()
+        df_NAN['Reflectance_Stan_475'] = arr_std[1].ravel() 
+        df_NAN['Reflectance_Stan_531'] = arr_std[2].ravel() 
+        df_NAN['Reflectance_Stan_560'] = arr_std[3].ravel() 
+        df_NAN['Reflectance_Stan_650'] = arr_std[4].ravel() 
+        df_NAN['Reflectance_Stan_668'] = arr_std[5].ravel() 
+        df_NAN['Reflectance_Stan_705'] = arr_std[6].ravel() 
+        df_NAN['Reflectance_Stan_717'] = arr_std[7].ravel() 
+        df_NAN['Reflectance_Stan_740'] = arr_std[8].ravel() 
+        df_NAN['Reflectance_Stan_842'] = arr_std[9].ravel()
 
-        NDVI=(Full_ten[:,:,9]-Full_ten[:,:,5])/(Full_ten[:,:,9]+Full_ten[:,:,5])
-        NDVI=NDVI[:,:,None]
+        df_NAN['NDVI'] = (df_NAN['Reflectance_842']-df_NAN['Reflectance_650'])/(df_NAN['Reflectance_842']+df_NAN['Reflectance_650'])
+        df_NAN['NDVI_Stan'] = (df_NAN['Reflectance_Stan_842']-df_NAN['Reflectance_Stan_650'])/(df_NAN['Reflectance_Stan_842']+df_NAN['Reflectance_Stan_650'])
 
-        NDVI_Stan=(FullStan_ten[:,:,9]-FullStan_ten[:,:,5])/(FullStan_ten[:,:,9]+FullStan_ten[:,:,5])
-        NDVI_Stan=NDVI_Stan[:,:,None]
-
-        FullCombo_ten=torch.cat((Full_ten,FullStan_ten,NDVI,NDVI_Stan),2)
-
-        del Full_ten
-        del NDVI_Stan
-        del NDVI
-        del Reflectance_444
-        del Reflectance_475
-        del Reflectance_531
-        del Reflectance_560
-        del Reflectance_650
-        del Reflectance_668
-        del Reflectance_705
-        del Reflectance_717
-        del Reflectance_740
-        del Reflectance_842
-        del FullStan
-
+        del arr_std, Arr_Max, Arr_Min
         gc.collect()
 
+        df = df_NAN.dropna()
 
 
-        Columns_test=['Reflectance_444',
-              'Reflectance_475',
-              'Reflectance_531',
-              'Reflectance_560',
-              'Reflectance_650',
-              'Reflectance_668',
-              'Reflectance_705',
-              'Reflectance_717',
-              'Reflectance_740',
-              'Reflectance_842',
-              'Reflectance_Stan_444',
-              'Reflectance_Stan_475',
-              'Reflectance_Stan_531',
-              'Reflectance_Stan_560',
-              'Reflectance_Stan_650',
-              'Reflectance_Stan_668',
-              'Reflectance_Stan_705',
-              'Reflectance_Stan_717',
-              'Reflectance_Stan_740',
-              'Reflectance_Stan_842',
-              'NDVI',
-              'NDVI_Stan']
-        
-        v = FullCombo_ten.view(FullCombo_ten.shape[0]*FullCombo_ten.shape[1],FullCombo_ten.shape[2])
-
-        df_test_nan=pd.DataFrame(v,columns=Columns_test)
-        df_test_nan_nrum = df_test_nan
-
-        del v
-
-        df_test = df_test_nan.dropna()
-
+        df_test_nan_nrum = df_NAN
         df_test_nan_nrum['ID'] = np.arange(len(df_test_nan_nrum))
         df_test_nrum = df_test_nan_nrum.dropna()
-        df_test_nan['ID']= np.arange(len(df_test_nan))
 
 
         del df_test_nan_nrum 
@@ -156,7 +96,7 @@ def batch_prediction(imgs, models):
             learn = load_learner('../models/' + learn_i + '.pkl')
             categories = learn.dls.vocab
 
-            dl = learn.dls.test_dl(df_test, bs=4000)
+            dl = learn.dls.test_dl(df, bs=4000)
             preds,_ = learn.get_preds(dl=dl)
 
             del dl
@@ -180,29 +120,26 @@ def batch_prediction(imgs, models):
             del NumPred
             del PredProbs
 
-            res_input_df = pd.merge(df_test_nan,res_df, how='left', on = 'ID')
+            df_NAN['ID']= np.arange(len(df_NAN))
 
-            del res_df 
+            res_input_df = pd.merge(df_NAN,res_df, how='left', on = 'ID')
 
             Pred_arr = np.asarray(res_input_df['Pred_ID'])
 
             Pred_arr=Pred_arr+1
 
             Prob_arr = np.asarray(res_input_df['Prob'])
+            Prob_ras = Prob_arr.reshape(arr.shape[1], arr.shape[2])
 
-            del res_input_df 
+            Pred_ras = Pred_arr.reshape(arr.shape[1], arr.shape[2])
 
-            Prob_ras = Prob_arr.reshape(Full.shape[0], Full.shape[1])
-
-            Pred_ras = Pred_arr.reshape(Full.shape[0], Full.shape[1])
-
-            del Pred_arr
-            del Prob_arr
+            if os.path.isdir("../Output/Pred/Batch/" + learn_i + '/') == False:
+                os.mkdir("../Output/Pred/Batch/" + learn_i + '/')
 
             # export
             driver = gdal.GetDriverByName("GTiff")
             driver.Register()
-            outds = driver.Create("../Output/Pred/Batch/" + img_i + '_' + learn_i +"_prob.tif", xsize = Prob_ras.shape[1],
+            outds = driver.Create("../Output/Pred/Batch/" + learn_i + '/' + img_i + '_' + learn_i +"_prob.tif", xsize = Prob_ras.shape[1],
                                 ysize = Prob_ras.shape[0], bands = 1, 
                                 eType = gdal.GDT_Float32)
 
@@ -214,12 +151,12 @@ def batch_prediction(imgs, models):
             outband.FlushCache()
 
             # close your datasets and bands!!!
-            
-            del outds
+            outband = None
+            outds = None
 
             driver = gdal.GetDriverByName("GTiff")
             driver.Register()
-            outds = driver.Create("../Output/Pred/Batch/" + img_i + '_' + learn_i +"_pred.tif", xsize = Pred_ras.shape[1],
+            outds = driver.Create("../Output/Pred/Batch/" + learn_i + '/'+ img_i + '_' + learn_i +"_pred.tif", xsize = Pred_ras.shape[1],
                                 ysize = Pred_ras.shape[0], bands = 1, 
                                 eType = gdal.GDT_Int16)
             outds.SetGeoTransform(gt)
@@ -229,11 +166,9 @@ def batch_prediction(imgs, models):
             outband.SetNoDataValue(65535)
             outband.SetNoDataValue(32767)
             outband.FlushCache()
-
-            # close your datasets and bands!!
-            del outband
-            Prob_ras = None
-            driver = None
+            # close your datasets and bands!!!
+            outband = None
+            outds = None
 
             gc.collect()
 
