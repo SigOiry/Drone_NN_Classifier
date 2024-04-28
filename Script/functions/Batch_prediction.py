@@ -36,7 +36,7 @@ def batch_prediction(imgs, models):
         models_i = list(filter(lambda item: item is not None, models_i))    
         if len(models_i) != 0:
 
-            print("*-* *-* *-* *-* *-* Starting preprocessing on the image")
+            print("*-*-*-* Starting preprocessing on the image")
 
             with fiona.open('../Data/shp/mask/' + img_i + '.shp', "r") as shapefile:
                 shapes = [feature["geometry"] for feature in shapefile]
