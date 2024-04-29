@@ -76,7 +76,9 @@ for(i in 1:nrow(df_pred)){
                                "Water"))+
     ggtitle(names(df_pred)[1])+
     theme_Bede_Map()+
-    theme(plot.title = element_text(size = 20, face = "bold"))
+    theme(plot.title = element_text(size = 20, face = "bold"),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank())
   
   plot2 <- ggplot()+
     tidyterra::geom_spatraster(data = img2, 
@@ -97,7 +99,9 @@ for(i in 1:nrow(df_pred)){
                                "Water"))+
     ggtitle(names(df_pred)[2])+
     theme_Bede_Map()+
-    theme(plot.title = element_text(size = 20, face = "bold"))
+    theme(plot.title = element_text(size = 20, face = "bold"),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank())
     
   
     
